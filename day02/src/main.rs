@@ -18,26 +18,6 @@ impl Options {
             Options::Scissors => 3,
         }
     }
-
-    fn duel(&self, other: &Options) -> u32 {
-        match self {
-            Options::Rock => match other {
-                Options::Scissors => 6,
-                Options::Rock => 3,
-                _ => 0,
-            },
-            Options::Paper => match other {
-                Options::Rock => 6,
-                Options::Paper => 3,
-                _ => 0,
-            },
-            Options::Scissors => match other {
-                Options::Paper => 6,
-                Options::Scissors => 3,
-                _ => 0,
-            },
-        }
-    }
 }
 
 impl FromStr for Options {
@@ -48,25 +28,61 @@ impl FromStr for Options {
             "A" => Ok(Options::Rock),
             "B" => Ok(Options::Paper),
             "C" => Ok(Options::Scissors),
-            "X" => Ok(Options::Rock),
-            "Y" => Ok(Options::Paper),
-            "Z" => Ok(Options::Scissors),
             _ => Err(()),
         }
     }
 }
 
-fn get_points(s: &str) -> u32 {
-    let options: Vec<Options> = s
-        .split(' ')
-        .map(|option| option.parse::<Options>().unwrap())
-        .collect();
+enum Strategy {
+    Win,
+    Draw,
+    Lose,
+}
 
-    options[1].duel(&options[0]) + (options[1].value())
+impl FromStr for Strategy {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "X" => Ok(Strategy::Lose),
+            "Y" => Ok(Strategy::Draw),
+            "Z" => Ok(Strategy::Win),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Strategy {
+    fn duel(&self, other: &Options) -> u32 {
+        match self {
+            Strategy::Win => {
+                6 + (match other {
+                    Options::Rock => Options::Paper,
+                    Options::Paper => Options::Scissors,
+                    Options::Scissors => Options::Rock,
+                })
+                .value()
+            }
+            Strategy::Draw => 3 + other.value(),
+            Self::Lose => (match other {
+                Options::Rock => Options::Scissors,
+                Options::Paper => Options::Rock,
+                Options::Scissors => Options::Paper,
+            })
+            .value(),
+        }
+    }
+}
+
+fn get_points(s: &str) -> u32 {
+    let opponent: Options = s[..1].parse().unwrap();
+    let strategy: Strategy = s[2..3].parse().unwrap();
+
+    strategy.duel(&opponent)
 }
 
 fn main() {
-    let file = File::open("./input.txt").expect("Could not read file");
+    let file = File::open("../input.txt").expect("Could not read file");
     let reader = BufReader::new(file);
 
     let result = reader
