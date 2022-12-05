@@ -3,6 +3,8 @@ use std::{
     io::{BufRead, BufReader},
 };
 
+const GROUP_SIZE: usize = 3;
+
 fn get_priority(c: char) -> u8 {
     if c.is_ascii_lowercase() {
         (c as u8) - b'a' + 1
@@ -11,24 +13,23 @@ fn get_priority(c: char) -> u8 {
     }
 }
 
-fn find_common_item(str: &str) -> u32 {
-    let first = &str[..(str.len() / 2)];
-    let second = &str[(str.len() / 2)..];
-
+fn get_bitmask(str: &str) -> u64 {
     let mut bitmask = 0u64;
 
-    first
-        .chars()
-        .map(get_priority)
-        .for_each(|p| bitmask |= 1u64 << p);
-
-    for p in second.chars().map(get_priority) {
-        if bitmask & 1u64 << p > 0 {
-            return p.into();
-        }
+    for p in str.chars().map(get_priority) {
+        bitmask |= 1u64 << p;
     }
 
-    0
+    bitmask
+}
+
+fn find_common_item(group: &[String]) -> u32 {
+    group
+        .iter()
+        .map(|s| get_bitmask(s))
+        .reduce(|acc, cur| acc & cur)
+        .unwrap_or(0)
+        .trailing_zeros()
 }
 
 fn main() {
@@ -37,7 +38,10 @@ fn main() {
 
     let result = reader
         .lines()
-        .map(|line| find_common_item(&line.unwrap()))
+        .map(|line| line.unwrap())
+        .collect::<Vec<String>>()
+        .chunks(GROUP_SIZE)
+        .map(find_common_item)
         .sum::<u32>();
 
     println!("{:?}", result);
